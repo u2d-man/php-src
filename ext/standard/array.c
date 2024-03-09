@@ -5823,106 +5823,209 @@ PHP_FUNCTION(array_diff)
 		RETURN_THROWS();
 	}
 
-	num = zend_hash_num_elements(Z_ARRVAL(args[0]));
-	if (num == 0) {
-		for (i = 1; i < argc; i++) {
-			if (Z_TYPE(args[i]) != IS_ARRAY) {
-				zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
-				RETURN_THROWS();
-			}
-		}
-		RETURN_EMPTY_ARRAY();
-	} else if (num == 1) {
-		int found = 0;
-		zend_string *search_str, *tmp_search_str;
+    if (strict) {
+        num = zend_hash_num_elements(Z_ARRVAL(args[0]));
+        if (num == 0) {
+            for (i = 1; i < argc; i++) {
+                if (Z_TYPE(args[i]) != IS_ARRAY) {
+                    zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
+                    RETURN_THROWS();
+                }
+            }
+            RETURN_EMPTY_ARRAY();
+        } else if (num == 1) {
+            int found = 0;
+            zend_string *search_str, *tmp_search_str;
 
-		value = NULL;
-		ZEND_HASH_FOREACH_VAL(Z_ARRVAL(args[0]), value) {
-			break;
-		} ZEND_HASH_FOREACH_END();
+            value = NULL;
+            ZEND_HASH_FOREACH_VAL(Z_ARRVAL(args[0]), value) {
+                break;
+            } ZEND_HASH_FOREACH_END();
 
-		if (!value) {
-			for (i = 1; i < argc; i++) {
-				if (Z_TYPE(args[i]) != IS_ARRAY) {
-					zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
-					RETURN_THROWS();
-				}
-			}
-			RETURN_EMPTY_ARRAY();
-		}
+            if (!value) {
+                for (i = 1; i < argc; i++) {
+                    if (Z_TYPE(args[i]) != IS_ARRAY) {
+                        zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
+                        RETURN_THROWS();
+                    }
+                }
+                RETURN_EMPTY_ARRAY();
+            }
 
-		search_str = zval_get_tmp_string(value, &tmp_search_str);
+            search_str = zval_get_tmp_string(value, &tmp_search_str);
 
-		for (i = 1; i < argc; i++) {
-			if (Z_TYPE(args[i]) != IS_ARRAY) {
-				zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
-				RETURN_THROWS();
-			}
-			if (!found) {
-				ZEND_HASH_FOREACH_VAL(Z_ARRVAL(args[i]), value) {
-					str = zval_get_tmp_string(value, &tmp_str);
-					if (zend_string_equals(search_str, str)) {
-						zend_tmp_string_release(tmp_str);
-						found = 1;
-						break;
-					}
-					zend_tmp_string_release(tmp_str);
-				} ZEND_HASH_FOREACH_END();
-			}
-		}
+            for (i = 1; i < argc; i++) {
+                if (Z_TYPE(args[i]) != IS_ARRAY) {
+                    zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
+                    RETURN_THROWS();
+                }
+                if (!found) {
+                    ZEND_HASH_FOREACH_VAL(Z_ARRVAL(args[i]), value) {
+                        str = zval_get_tmp_string(value, &tmp_str);
+                        if (zend_string_equals(search_str, str)) {
+                            zend_tmp_string_release(tmp_str);
+                            found = 1;
+                            break;
+                        }
+                        zend_tmp_string_release(tmp_str);
+                    } ZEND_HASH_FOREACH_END();
+                }
+            }
 
-		zend_tmp_string_release(tmp_search_str);
+            zend_tmp_string_release(tmp_search_str);
 
-		if (found) {
-			RETVAL_EMPTY_ARRAY();
-		} else {
-			ZVAL_COPY(return_value, &args[0]);
-		}
-		return;
-	}
+            if (found) {
+                RETVAL_EMPTY_ARRAY();
+            } else {
+                ZVAL_COPY(return_value, &args[0]);
+            }
+            return;
+        }
 
-	/* count number of elements */
-	num = 0;
-	for (i = 1; i < argc; i++) {
-		if (Z_TYPE(args[i]) != IS_ARRAY) {
-			zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
-			RETURN_THROWS();
-		}
-		num += zend_hash_num_elements(Z_ARRVAL(args[i]));
-	}
+        /* count number of elements */
+        num = 0;
+        for (i = 1; i < argc; i++) {
+            if (Z_TYPE(args[i]) != IS_ARRAY) {
+                zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
+                RETURN_THROWS();
+            }
+            num += zend_hash_num_elements(Z_ARRVAL(args[i]));
+        }
 
-	if (num == 0) {
-		ZVAL_COPY(return_value, &args[0]);
-		return;
-	}
+        if (num == 0) {
+            ZVAL_COPY(return_value, &args[0]);
+            return;
+        }
 
-	ZVAL_NULL(&dummy);
-	/* create exclude map */
-	zend_hash_init(&exclude, num, NULL, NULL, 0);
-	for (i = 1; i < argc; i++) {
-		ZEND_HASH_FOREACH_VAL(Z_ARRVAL(args[i]), value) {
-			str = zval_get_tmp_string(value, &tmp_str);
-			zend_hash_add(&exclude, str, &dummy);
-			zend_tmp_string_release(tmp_str);
-		} ZEND_HASH_FOREACH_END();
-	}
+        ZVAL_NULL(&dummy);
+        /* create exclude map */
+        zend_hash_init(&exclude, num, NULL, NULL, 0);
+        for (i = 1; i < argc; i++) {
+            ZEND_HASH_FOREACH_VAL(Z_ARRVAL(args[i]), value) {
+                str = zval_get_tmp_string(value, &tmp_str);
+                zend_hash_add(&exclude, str, &dummy);
+                zend_tmp_string_release(tmp_str);
+            } ZEND_HASH_FOREACH_END();
+        }
 
-	/* copy all elements of first array that are not in exclude set */
-	array_init_size(return_value, zend_hash_num_elements(Z_ARRVAL(args[0])));
-	ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL(args[0]), idx, key, value) {
-		str = zval_get_tmp_string(value, &tmp_str);
-		if (!zend_hash_exists(&exclude, str)) {
-			if (key) {
-				value = zend_hash_add_new(Z_ARRVAL_P(return_value), key, value);
-			} else {
-				value = zend_hash_index_add_new(Z_ARRVAL_P(return_value), idx, value);
-			}
-			zval_add_ref(value);
-		}
-		zend_tmp_string_release(tmp_str);
-	} ZEND_HASH_FOREACH_END();
+        /* copy all elements of first array that are not in exclude set */
+        array_init_size(return_value, zend_hash_num_elements(Z_ARRVAL(args[0])));
+        ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL(args[0]), idx, key, value) {
+            str = zval_get_tmp_string(value, &tmp_str);
+            if (!zend_hash_exists(&exclude, str)) {
+                if (key) {
+                    value = zend_hash_add_new(Z_ARRVAL_P(return_value), key, value);
+                } else {
+                    value = zend_hash_index_add_new(Z_ARRVAL_P(return_value), idx, value);
+                }
+                zval_add_ref(value);
+            }
+            zend_tmp_string_release(tmp_str);
+        } ZEND_HASH_FOREACH_END();
 
-	zend_hash_destroy(&exclude);
+        zend_hash_destroy(&exclude);
+    } else {
+        num = zend_hash_num_elements(Z_ARRVAL(args[0]));
+        if (num == 0) {
+            for (i = 1; i < argc; i++) {
+                if (Z_TYPE(args[i]) != IS_ARRAY) {
+                    zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
+                    RETURN_THROWS();
+                }
+            }
+            RETURN_EMPTY_ARRAY();
+        } else if (num == 1) {
+            int found = 0;
+            zend_string *search_str, *tmp_search_str;
+
+            value = NULL;
+            ZEND_HASH_FOREACH_VAL(Z_ARRVAL(args[0]), value) {
+                break;
+            } ZEND_HASH_FOREACH_END();
+
+            if (!value) {
+                for (i = 1; i < argc; i++) {
+                    if (Z_TYPE(args[i]) != IS_ARRAY) {
+                        zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
+                        RETURN_THROWS();
+                    }
+                }
+                RETURN_EMPTY_ARRAY();
+            }
+
+            search_str = zval_get_tmp_string(value, &tmp_search_str);
+
+            for (i = 1; i < argc; i++) {
+                if (Z_TYPE(args[i]) != IS_ARRAY) {
+                    zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
+                    RETURN_THROWS();
+                }
+                if (!found) {
+                    ZEND_HASH_FOREACH_VAL(Z_ARRVAL(args[i]), value) {
+                        str = zval_get_tmp_string(value, &tmp_str);
+                        if (zend_string_equals(search_str, str)) {
+                            zend_tmp_string_release(tmp_str);
+                            found = 1;
+                            break;
+                        }
+                        zend_tmp_string_release(tmp_str);
+                    } ZEND_HASH_FOREACH_END();
+                }
+            }
+
+            zend_tmp_string_release(tmp_search_str);
+
+            if (found) {
+                RETVAL_EMPTY_ARRAY();
+            } else {
+                ZVAL_COPY(return_value, &args[0]);
+            }
+            return;
+        }
+
+        /* count number of elements */
+        num = 0;
+        for (i = 1; i < argc; i++) {
+            if (Z_TYPE(args[i]) != IS_ARRAY) {
+                zend_argument_type_error(i + 1, "must be of type array, %s given", zend_zval_value_name(&args[i]));
+                RETURN_THROWS();
+            }
+            num += zend_hash_num_elements(Z_ARRVAL(args[i]));
+        }
+
+        if (num == 0) {
+            ZVAL_COPY(return_value, &args[0]);
+            return;
+        }
+
+        ZVAL_NULL(&dummy);
+        /* create exclude map */
+        zend_hash_init(&exclude, num, NULL, NULL, 0);
+        for (i = 1; i < argc; i++) {
+            ZEND_HASH_FOREACH_VAL(Z_ARRVAL(args[i]), value) {
+                str = zval_get_tmp_string(value, &tmp_str);
+                zend_hash_add(&exclude, str, &dummy);
+                zend_tmp_string_release(tmp_str);
+            } ZEND_HASH_FOREACH_END();
+        }
+
+        /* copy all elements of first array that are not in exclude set */
+        array_init_size(return_value, zend_hash_num_elements(Z_ARRVAL(args[0])));
+        ZEND_HASH_FOREACH_KEY_VAL(Z_ARRVAL(args[0]), idx, key, value) {
+            str = zval_get_tmp_string(value, &tmp_str);
+            if (!zend_hash_exists(&exclude, str)) {
+                if (key) {
+                    value = zend_hash_add_new(Z_ARRVAL_P(return_value), key, value);
+                } else {
+                    value = zend_hash_index_add_new(Z_ARRVAL_P(return_value), idx, value);
+                }
+                zval_add_ref(value);
+            }
+            zend_tmp_string_release(tmp_str);
+        } ZEND_HASH_FOREACH_END();
+
+        zend_hash_destroy(&exclude);
+    }
 }
 /* }}} */
 
